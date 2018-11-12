@@ -3,6 +3,11 @@ export default {
   alias: "Team calendar",
   columns: [
     {
+      id: "entry_type",
+      alias: "Entry type",
+      dataType: tableau.dataTypeEnum.string
+    },
+    {
       id: "task_id",
       alias: "Task ID",
       dataType: tableau.dataTypeEnum.int
@@ -18,8 +23,8 @@ export default {
       dataType: tableau.dataTypeEnum.date
     },
     {
-      id: "workload",
-      alias: "Workload (hours)",
+      id: "duration",
+      alias: "Duration",
       dataType: tableau.dataTypeEnum.float
     },
     {

@@ -1,5 +1,6 @@
 import axios from 'axios'
-import {addDays} from 'date-fns'
+import {addDays, startOfDay} from 'date-fns'
+import {groupBy} from 'lodash-es'
 import {businessDays, isHoliday, isWeekend, dateRange, dayType} from './dateHelpers.js'
 import projectsSchema from './schemas/projects.js'
 import tasksSchema from './schemas/tasks.js'
@@ -9,6 +10,28 @@ import timeEntriesSchema from './schemas/timeEntries.js'
 import calendarSchema from './schemas/calendar.js'
 
 window.addEventListener("load", function() {
+  const parseProgress = progressStatus => {
+    const match = /(\d?\d)%/.exec(progressStatus)
+    if (match) return Number(match[1])/100
+    else return 0
+  }
+
+  const entryDateAndDuration = ({date, start_time, end_time}) => {
+    if (date) {
+      return {
+        date,
+        day_type: dayType(new Date(date)),
+        duration: duration/3600
+      }
+    }
+    else {
+      return {
+        date : startOfDay(new Date(start_time)),
+        date_type : dayType(new Date(start_time)),
+        duration : differenceInSeconds(new Date(end_time), new Date(start_time))/3600
+      }
+    }
+  }
 
   const myConnector = tableau.makeConnector()
   myConnector.getSchema = function(schemaCallback) {
@@ -26,48 +49,100 @@ window.addEventListener("load", function() {
     const {id} = table.tableInfo
     if (id == "calendar") {
       (async () => {
-        const [{data:{tasks}},{data:{users}}] = await Promise.all([
-          paymo.get('tasks'),
-          paymo.get('users')
+        const [{data:{tasks}},{data:{users}},{data:{bookings}},{data:{entries}}] = await Promise.all([
+          paymo.get('tasks',{
+            params:{
+              include: ['*','progress_status']
+            }
+          }),
+          paymo.get('users'),
+          paymo.get('bookings',{
+            params:{
+              where: 'date_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")',
+              include: ['*','usertask']
+            }
+          }),
+          paymo.get('entries',{
+            params:{
+              where: 'date_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")',
+              include: ['*','usertask']
+            }
+          })
         ])
+        const
+          bookings_dict = groupBy(bookings,ut=>ut.usertask.task_id)
+          entries_dict = groupBy(entries,ut=>e.usertask.task_id)
+
         for (let {id: user_id} of users) {
           table.appendRows(
             dateRange(new Date('2018-01-01'),new Date('2028-01-01'))
-            .map(date => ({date, user_id, id, day_type: dayType(date)}))
+            .map(date => ({date, user_id, id, workday_hours, entry_type: "user", day_type: dayType(date)}))
           )
         }
         for (let task of tasks) {
-          let { id, users, start_date, due_date, budget_hours } = task
-          let dates = businessDays(new Date(start_date),new Date(due_date))
-          let usersCount = users.length
-          let datesCount = dates.length
-          if (usersCount==0) {
-            table.appendRows(
-              dates.map(date=>({
-                date,
-                day_type: dayType(date),
-                task_id: id,
-                workload: budget_hours/datesCount
-              })))
-          } else {
-            for (let user of users) {
+          let { id, users, start_date, due_date, budget_hours, progress_status} = task
+          let hoursLeft = (1 - parseProgress(progress_status)) * budget_hours
+          if (bookings_dict[id]!=undefined) {
+            for (let {start_date,end_date,hours_per_day,usertask:{task_id,user_id}} of bookings_dict[id]){
+              let dates = businessDays(new Date(start_date),new Date(end_date))
               table.appendRows(
                 dates.map(date=>({
                   date,
+                  entry_type: "booking",
+                  day_type: dayType(date),
+                  task_id,
+                  user_id,
+                  duration: hours_per_day
+                })))
+              hoursLeft -= dates.length * hours_per_day
+            }
+          }
+          if (hoursLeft > 0) {
+            let dates = businessDays(new Date(start_date),new Date(due_date))
+            let usersCount = users.length
+            let datesCount = dates.length
+            if (usersCount==0) {
+              table.appendRows(
+                dates.map(date=>({
+                  date,
+                  entry_type: "budget",
                   day_type: dayType(date),
                   task_id: id,
-                  user_id: user,
-                  workload: budget_hours/usersCount/datesCount
-                }))
-              )
+                  duration: hoursLeft/datesCount
+                })))
+            } else {
+              for (let user of users) {
+                table.appendRows(
+                  dates.map(date=>({
+                    date,
+                    entry_type: "budget",
+                    day_type: dayType(date),
+                    task_id: id,
+                    user_id: user,
+                    duration: hoursLeft/usersCount/datesCount
+                  }))
+                )
+              }
             }
+          }
+          if (entries_dict[id]!=undefined) {
+            tableau.appendRows(entries_dict[id].map(({date, duration, start_time, end_time, task_id, user_id}) => ({
+              entry_type: "timesheet",
+              task_id,
+              user_id,
+              ...entryDateAndDuration({date, duration, start_time, end_time})
+            })))
           }
         }
         doneCallback()
       })()
     } else if (id == "entries") {
       (async () => {
-        let {data} = await paymo.get(id+'?where=time_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")')
+        let {data} = await paymo.get(id,{
+          params: {
+            where: 'time_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")'
+          }
+        })
         table.appendRows(data[id])
         doneCallback()
       })()
