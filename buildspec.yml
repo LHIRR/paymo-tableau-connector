@@ -16,7 +16,7 @@ phases:
   build:
     commands:
       - echo Build phase started on $(date)
-      - npm build
+      - npm run build
     finally:
       - echo Build phase succeeded on $(date)
   post_build:
