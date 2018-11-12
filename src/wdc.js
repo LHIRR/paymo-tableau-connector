@@ -16,20 +16,14 @@ window.addEventListener("load", function() {
     else return 0
   }
 
-  const entryDateAndDuration = ({date, start_time, end_time}) => {
-    if (date) {
-      return {
-        date,
-        day_type: dayType(new Date(date)),
-        duration: duration/3600
-      }
-    }
-    else {
-      return {
-        date : startOfDay(new Date(start_time)),
-        date_type : dayType(new Date(start_time)),
-        duration : differenceInSeconds(new Date(end_time), new Date(start_time))/3600
-      }
+  const entryDateAndDuration = ({date: date0, duration: duration0, start_time, end_time}) => {
+    let
+      date = date0 || startOfDay(new Date(start_time))
+      duration = (duration0 || differenceInSeconds(new Date(end_time), new Date(start_time)))/3600
+    return {
+      date,
+      duration,
+      day_type : dayType(new Date(date))
     }
   }
 
@@ -49,38 +43,20 @@ window.addEventListener("load", function() {
     const {id} = table.tableInfo
     if (id == "calendar") {
       (async () => {
-        const [{data:{tasks}},{data:{users}},{data:{bookings}},{data:{entries}}] = await Promise.all([
-          paymo.get('tasks',{
-            params:{
-              include: ['*','progress_status']
-            }
-          }),
+        const [{data:{tasks}},{data:{users}},{data:{bookings}}] = await Promise.all([
+          paymo.get('tasks?include=*,progress_status,entries'),
           paymo.get('users'),
-          paymo.get('bookings',{
-            params:{
-              where: 'date_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")',
-              include: ['*','usertask']
-            }
-          }),
-          paymo.get('entries',{
-            params:{
-              where: 'date_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")',
-              include: ['*','usertask']
-            }
-          })
+          paymo.get('bookings?where=date_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")&include=*,usertask')
         ])
-        const
-          bookings_dict = groupBy(bookings,ut=>ut.usertask.task_id)
-          entries_dict = groupBy(entries,ut=>e.usertask.task_id)
-
+        const bookings_dict = groupBy(bookings,ut=>ut.usertask.task_id)
         for (let {id: user_id} of users) {
           table.appendRows(
             dateRange(new Date('2018-01-01'),new Date('2028-01-01'))
-            .map(date => ({date, user_id, id, workday_hours, entry_type: "user", day_type: dayType(date)}))
+            .map(date => ({date, user_id, entry_type: "user", day_type: dayType(date)}))
           )
         }
         for (let task of tasks) {
-          let { id, users, start_date, due_date, budget_hours, progress_status} = task
+          let { id, users, start_date, due_date, budget_hours, progress_status, entries} = task
           let hoursLeft = (1 - parseProgress(progress_status)) * budget_hours
           if (bookings_dict[id]!=undefined) {
             for (let {start_date,end_date,hours_per_day,usertask:{task_id,user_id}} of bookings_dict[id]){
@@ -125,24 +101,18 @@ window.addEventListener("load", function() {
               }
             }
           }
-          if (entries_dict[id]!=undefined) {
-            tableau.appendRows(entries_dict[id].map(({date, duration, start_time, end_time, task_id, user_id}) => ({
-              entry_type: "timesheet",
-              task_id,
-              user_id,
-              ...entryDateAndDuration({date, duration, start_time, end_time})
-            })))
-          }
+          tableau.appendRows(entries.map(({date, duration, start_time, end_time, task_id, user_id}) => ({
+            entry_type: "timesheet",
+            task_id,
+            user_id,
+            ...entryDateAndDuration({date, duration, start_time, end_time})
+          })))
         }
         doneCallback()
       })()
     } else if (id == "entries") {
       (async () => {
-        let {data} = await paymo.get(id,{
-          params: {
-            where: 'time_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")'
-          }
-        })
+        let {data} = await paymo.get(id+'?where time_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")')
         table.appendRows(data[id])
         doneCallback()
       })()
