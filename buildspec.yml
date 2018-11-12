@@ -21,11 +21,11 @@ phases:
       - echo Build phase succeeded on $(date)
   post_build:
     commands:
-      - echo Nothing to do in postbuild phase
+      - aws s3 sync ./dist s3://hack.lhirr.fr/tableau/paymo/ --delete
     finally:
       - echo Postbuild phase succeeded on $(date)
-artifacts:
-  files:
-    - index.html
-  discard-paths: yes
-  base-directory: dist
+# artifacts:
+#   files:
+#     - index.html
+#   discard-paths: yes
+#   base-directory: dist
