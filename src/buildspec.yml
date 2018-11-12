@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Nothing to do in install phase
+    finally:
+      - echo Install phase succeeded on `date`
+  pre_build:
+    commands:
+      - echo Prebuild phase started on `date`
+      - npm
+    finally:
+      - echo Prebuild phase succeeded on `date`
+      - command
+  build:
+    commands:
+      - echo Build phase started on `date`
+      - npm build
+    finally:
+      - echo Build phase succeeded on `date`
+  post_build:
+    commands:
+      - echo Nothing to do in postbuild phase
+    finally:
+      - echo Postbuild phase succeeded on `date`
+artifacts:
+  files:
+    - index.html
+  discard-paths: yes
+  base-directory: dist
