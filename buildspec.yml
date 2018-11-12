@@ -5,25 +5,25 @@ phases:
     commands:
       - echo Nothing to do in install phase
     finally:
-      - echo Install phase succeeded on `date`
+      - echo Install phase succeeded on $(date)
   pre_build:
     commands:
-      - echo Prebuild phase started on `date`
-      - npm
+      - echo Prebuild phase started on $(date)
+      - npm install
     finally:
-      - echo Prebuild phase succeeded on `date`
+      - echo Prebuild phase succeeded on $(date)
       - command
   build:
     commands:
-      - echo Build phase started on `date`
+      - echo Build phase started on $(date)
       - npm build
     finally:
-      - echo Build phase succeeded on `date`
+      - echo Build phase succeeded on $(date)
   post_build:
     commands:
       - echo Nothing to do in postbuild phase
     finally:
-      - echo Postbuild phase succeeded on `date`
+      - echo Postbuild phase succeeded on $(date)
 artifacts:
   files:
     - index.html
