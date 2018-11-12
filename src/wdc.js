@@ -48,7 +48,7 @@ window.addEventListener("load", function() {
                 day_type: dayType(date),
                 task_id: id,
                 workload: budget_hours/datesCount
-              }))
+              })))
           } else {
             for (let user of users) {
               table.appendRows(
