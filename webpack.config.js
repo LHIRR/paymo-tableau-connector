@@ -6,7 +6,7 @@ const
 
 
 module.exports = {
-  mode: "development",
+  mode: "production",
   entry: ["./src/wdc.js"],
   output: {
    path: path.resolve(__dirname, "dist"),
