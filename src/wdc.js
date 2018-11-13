@@ -1,7 +1,7 @@
 import axios from 'axios'
 import {addDays, startOfDay} from 'date-fns'
 import {groupBy} from 'lodash-es'
-import {businessDays, isHoliday, isWeekend, dateRange, dayType} from './dateHelpers.js'
+import {businessDays, isValidDate, isHoliday, isWeekend, dateRange, dayType} from './dateHelpers.js'
 import projectsSchema from './schemas/projects.js'
 import tasksSchema from './schemas/tasks.js'
 import usersSchema from './schemas/users.js'
@@ -9,23 +9,24 @@ import clientsSchema from './schemas/clients.js'
 import timeEntriesSchema from './schemas/timeEntries.js'
 import calendarSchema from './schemas/calendar.js'
 
-window.addEventListener("load", function() {
-  const parseProgress = progressStatus => {
-    const match = /(\d?\d)%/.exec(progressStatus)
-    if (match) return Number(match[1])/100
-    else return 0
-  }
+const parseProgress = progressStatus => {
+  const match = /(\d?\d)%/.exec(progressStatus)
+  if (match) return Number(match[1])/100
+  else return 0
+}
 
-  const entryDateAndDuration = ({date: date0, duration: duration0, start_time, end_time}) => {
-    let
-      date = date0 || startOfDay(new Date(start_time)),
-      duration = (duration0 || differenceInSeconds(new Date(end_time), new Date(start_time)))/3600
-    return {
-      date,
-      duration,
-      day_type : dayType(new Date(date))
-    }
+const entryDateAndDuration = ({date: date0, duration: duration0, start_time, end_time}) => {
+  let
+    date = date0 || startOfDay(new Date(start_time)),
+    duration = (duration0 || differenceInSeconds(new Date(end_time), new Date(start_time)))/3600
+  return {
+    date,
+    duration,
+    day_type : dayType(new Date(date))
   }
+}
+
+window.addEventListener("load", function() {
 
   const myConnector = tableau.makeConnector()
   myConnector.getSchema = function(schemaCallback) {
@@ -41,17 +42,18 @@ window.addEventListener("load", function() {
 
   myConnector.getData = function(table, doneCallback) {
     const {id} = table.tableInfo
+    const {startDate, endDate} = JSON.parse(tableau.connectionData)
     if (id == "calendar") {
       (async () => {
         const [{data:{tasks}},{data:{users}},{data:{bookings}}] = await Promise.all([
           paymo.get('tasks?include=*,progress_status,entries'),
           paymo.get('users'),
-          paymo.get('bookings?where=date_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")&include=*,usertask')
+          paymo.get(`bookings?where=date_interval in ("${startDate}","${endDate}")&include=*,usertask`)
         ])
         const bookings_dict = groupBy(bookings,ut=>ut.usertask.task_id)
         for (let {id: user_id} of users) {
           table.appendRows(
-            dateRange(new Date('2018-01-01'),new Date('2028-01-01'))
+            dateRange(new Date(startDate),new Date(endDate))
             .map(date => ({date, user_id, entry_type: "user", day_type: dayType(date)}))
           )
         }
@@ -112,7 +114,7 @@ window.addEventListener("load", function() {
       })()
     } else if (id == "entries") {
       (async () => {
-        let {data} = await paymo.get(id+'?where time_interval in ("2018-01-01T00:00:00Z","2028-01-01T00:00:00Z")')
+        let {data} = await paymo.get(`$${id}?where=time_interval in("${startDate}","${endDate}")`)
         table.appendRows(data[id])
         doneCallback()
       })()
@@ -142,7 +144,17 @@ window.addEventListener("load", function() {
 
   tableau.registerConnector(myConnector);
   document.getElementById("submit").addEventListener("click",function(){
-    tableau.password = document.getElementById("token").value
-    tableau.submit()
+    tableau.password = document.getElementById("APIToken").value
+    let
+      startDate = new Date(document.getElementById("startDate").value)
+      endDate = new Date(document.getElementById("endDate").value)
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      tableau.connectionData = JSON.stringify({startDate,endDate})
+      tableau.submit()
+    } else {
+      document.getElementById("error").innerHTML =
+        (isValidDate(startDate) ? "<p>La date de début est invalide.</p>" : "")
+        (isValidDate(endDate) ? "<p>La date de fin est invalide.</p>" : "")
+    }
   })
 })

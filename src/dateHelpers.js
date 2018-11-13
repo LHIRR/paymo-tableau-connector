@@ -34,3 +34,5 @@ export const businessDays = (start,end) =>
   dateRange(start,end).filter(date=>
     !isWeekend(date) && !isHoliday(date)
   )
+
+export const isValidDate = date => date instanceof Date && !isNaN(date)
