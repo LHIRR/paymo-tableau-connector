@@ -6,7 +6,6 @@ const
 
 
 module.exports = {
-  mode: "production",
   entry: ["./src/wdc.js"],
   output: {
    path: path.resolve(__dirname, "dist"),
@@ -20,7 +19,9 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: [['@babel/preset-env',{useBuiltIns: 'usage'}]],
+            presets: [['@babel/preset-env',{
+              targets: {browsers: ["last 2 versions", "IE >= 8"]},
+              useBuiltIns: 'usage'}]],
             plugins: ["@babel/plugin-transform-runtime"]
           }
         }

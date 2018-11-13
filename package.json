@@ -8,8 +8,8 @@
     "webpack": "^4.20.2"
   },
   "scripts": {
-    "build": "webpack",
-    "serve": "webpack-dev-server"
+    "build": "webpack --mode production",
+    "dev": "webpack-dev-server --mode development"
   },
   "devDependencies": {
     "@babel/core": "^7.1.2",

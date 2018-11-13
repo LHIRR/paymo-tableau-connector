@@ -18,7 +18,7 @@ window.addEventListener("load", function() {
 
   const entryDateAndDuration = ({date: date0, duration: duration0, start_time, end_time}) => {
     let
-      date = date0 || startOfDay(new Date(start_time))
+      date = date0 || startOfDay(new Date(start_time)),
       duration = (duration0 || differenceInSeconds(new Date(end_time), new Date(start_time)))/3600
     return {
       date,
@@ -101,7 +101,7 @@ window.addEventListener("load", function() {
               }
             }
           }
-          tableau.appendRows(entries.map(({date, duration, start_time, end_time, task_id, user_id}) => ({
+          table.appendRows(entries.map(({date, duration, start_time, end_time, task_id, user_id}) => ({
             entry_type: "timesheet",
             task_id,
             user_id,
