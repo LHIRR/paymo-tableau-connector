@@ -1,5 +1,6 @@
 import {easter} from 'date-easter'
 import {getMonth, getDate, getISODay, addDays} from 'date-fns'
+import { startCase } from 'lodash-es';
 
 export const isHoliday = date =>
   (getDate(date)==1 && getMonth(date)==1) // Nouvel an
@@ -28,6 +29,11 @@ export const dateRange = (start,end) => {
     range.push(cur)
   }
   return range
+}
+
+export const nextBusinessDay = (date) => {
+  while (isWeekend(date) || isHoliday(date)) date = addDays(date,1)
+  return date
 }
 
 export const businessDays = (start,end) =>
