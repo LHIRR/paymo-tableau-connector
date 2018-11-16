@@ -50,7 +50,7 @@ window.addEventListener("load", function() {
     if (id == "calendar") {
       (async () => {
         const [{data:{tasks}},{data:{users}},{data:{bookings}}] = await Promise.all([
-          paymo.get('tasks?include=*,progress_status,entries'),
+          paymo.get(`tasks?where=due_date>=${queryStartDate} and start_date<=${queryEndDate}&include=*,progress_status,entries`),
           paymo.get('users'),
           paymo.get(`bookings?where=date_interval in ("${queryStartDate}","${queryEndDate}")&include=*,usertask`)
         ])
