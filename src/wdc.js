@@ -9,11 +9,12 @@ import clientsSchema from './schemas/clients.js'
 import timeEntriesSchema from './schemas/timeEntries.js'
 import calendarSchema from './schemas/calendar.js'
 
-const estimateProgress = ({progress_status, start_date, due_date}) => {
-  if (progress_status == "Prorata") {
+const estimateProgress = ({progress_status, start_date, due_date, complete}) => {
+  if (complete) {
+    return 1
+  } else if (progress_status == "Prorata") {
     return businessDays(new Date(start_date), new Date()).length/businessDays(new Date(start_date), new Date(due_date)).length
-  }
-  else {
+  } else {
     const match =/(\d?\d)%/.exec(progress_status)
     if (match) return Number(match[1])/100
     else return 0
