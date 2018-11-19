@@ -56,6 +56,16 @@ export default {
       id: "estimated_price",
       alias: "Estimated price",
       dataType: tableau.dataTypeEnum.float
+    },
+    {
+      id: "progress_status",
+      alias: "Status",
+      dataType: tableau.dataTypeEnum.string
+    },
+    {
+      id: "progress",
+      alias: "Progress",
+      dataType: tableau.dataTypeEnum.float
     }
   ]
 }

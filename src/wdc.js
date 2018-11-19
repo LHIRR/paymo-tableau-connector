@@ -157,13 +157,26 @@ window.addEventListener("load", function() {
       })()
     } else if (id == "entries") {
       (async () => {
-        let {data} = await paymo.get(`$${id}?where=time_interval in("${queryStartDate}","${queryEndDate}")`)
+        const {data} = await paymo.get(`entries?where=time_interval in("${queryStartDate}","${queryEndDate}")`)
         table.appendRows(data[id])
+        doneCallback()
+      })()
+    } else if (id == "tasks") {
+      (async () => {
+        const [{data:{tasks:planned_tasks}},{data:{tasks:notplanned_tasks}}] = await Promise.all([
+          paymo.get(`tasks?where=due_date>=${queryStartDate} and start_date<=${queryEndDate}&include=*,progress_status`),
+          paymo.get(`tasks?where=due_date=null and start_date=null&include=*,progress_status`),
+        ])
+        table.appendRows(planned_tasks.map(t=>{
+          t.progress = estimateProgress(t)
+          return t
+        }))
+        table.appendRows(notplanned_tasks)
         doneCallback()
       })()
     } else {
       (async () => {
-        let {data} = await paymo.get(id)
+        const {data} = await paymo.get(id)
         table.appendRows(data[id])
         doneCallback()
       })()
