@@ -1,5 +1,5 @@
 import axios from 'axios'
-import {max} from 'date-fns'
+import {max, differenceInSeconds} from 'date-fns'
 import {groupBy} from 'lodash-es'
 import {businessDays, isValidDate, nextBusinessDay, dateRange, dayType} from './dateHelpers.js'
 import projectsSchema from './schemas/projects.js'
@@ -50,8 +50,9 @@ window.addEventListener("load", function() {
     const {queryStartDate, queryEndDate} = JSON.parse(tableau.connectionData)
     if (id == "calendar") {
       (async () => {
-        const [{data:{tasks}},{data:{users}},{data:{bookings}}] = await Promise.all([
+        const [{data:{tasks:planned_tasks}},{data:{tasks:notplanned_tasks}},{data:{users}},{data:{bookings}}] = await Promise.all([
           paymo.get(`tasks?where=due_date>=${queryStartDate} and start_date<=${queryEndDate}&include=*,progress_status,entries`),
+          paymo.get(`tasks?where=due_date=null and start_date=null&include=*,progress_status,entries`),
           paymo.get('users'),
           paymo.get(`bookings?where=date_interval in ("${queryStartDate}","${queryEndDate}")&include=*,usertask`)
         ])
@@ -63,11 +64,11 @@ window.addEventListener("load", function() {
             .map(date => ({date, user_id, entry_type: "user", day_type: dayType(date)}))
           )
         }
-        for (let task of tasks) {
+        for (let task of planned_tasks) {
           let {id: task_id, budget_hours, start_date, due_date, users} = task
           let hoursLeft = (1 - estimateProgress(task)) * budget_hours
-          if (bookings_dict[id]!=undefined) {
-            for (let {start_date,end_date,hours_per_day,usertask:{user_id}} of bookings_dict[id]){
+          if (bookings_dict[task_id]!=undefined) {
+            for (let {start_date,end_date,hours_per_day,usertask:{user_id}} of bookings_dict[task_id]){
               let dates = businessDays(max([new Date(start_date), now]),new Date(end_date))
               table.appendRows(
                 dates.map(date=>({
@@ -81,7 +82,7 @@ window.addEventListener("load", function() {
               hoursLeft -= dates.length * hours_per_day
             }
           }
-          if (hoursLeft > 0 && start_date!=null && due_date!=null) {
+          if (hoursLeft > 0) {
             let
               startDate = new Date(start_date),
               dueDate = new Date(due_date),
@@ -119,6 +120,30 @@ window.addEventListener("load", function() {
                   }))
                 )
               }
+            }
+          }
+          
+          table.appendRows(task.entries.map(({date, duration, start_time, end_time, user_id}) => ({
+            entry_type: "timesheet",
+            task_id,
+            user_id,
+            ...entryDateAndDuration({date, duration, start_time, end_time})
+          })))
+        }
+        for (let task of notplanned_tasks) {
+          let {id: task_id} = task
+          if (bookings_dict[task.id]!=undefined) {
+            for (let {start_date,end_date,hours_per_day,usertask:{user_id}} of bookings_dict[task.id]){
+              let dates = businessDays(max([new Date(start_date), now]),new Date(end_date))
+              table.appendRows(
+                dates.map(date=>({
+                  date,
+                  entry_type: "booking",
+                  day_type: dayType(date),
+                  task_id,
+                  user_id,
+                  duration: hours_per_day
+                })))
             }
           }
           table.appendRows(task.entries.map(({date, duration, start_time, end_time, user_id}) => ({
