@@ -23,6 +23,11 @@ export default {
       dataType: tableau.dataTypeEnum.string
     },
     {
+      id: "description",
+      alias: "Description",
+      dataType: tableau.dataTypeEnum.string
+    },
+    {
       id: "complete",
       alias: "Complete ?",
       dataType: tableau.dataTypeEnum.bool
