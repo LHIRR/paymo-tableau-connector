@@ -174,6 +174,15 @@ window.addEventListener("load", function() {
         table.appendRows(notplanned_tasks)
         doneCallback()
       })()
+    } else if (id == "projects") {
+      (async () => {
+        const {data:{projects}} = await paymo.get('projects?include=*,projectstatus.name')
+        table.appendRows(projects.map(p=>{
+          p.status = p.projectstatus.name
+          return p
+        }))
+        doneCallback()
+      })()
     } else {
       (async () => {
         const {data} = await paymo.get(id)

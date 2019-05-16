@@ -17,6 +17,11 @@ export default {
       dataType: tableau.dataTypeEnum.string
     },
     {
+      id: "status",
+      alias: "Status",
+      dataType: tableau.dataTypeEnum.string
+    },
+    {
       id: "client_id",
       alias: "Client ID",
       dataType: tableau.dataTypeEnum.int
