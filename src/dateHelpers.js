@@ -1,6 +1,5 @@
 import {easter} from 'date-easter'
 import {getMonth, getDate, getISODay, addDays} from 'date-fns'
-import { startCase } from 'lodash-es';
 
 export const isHoliday = date =>
   (getDate(date)==1 && getMonth(date)==1) // Nouvel an
