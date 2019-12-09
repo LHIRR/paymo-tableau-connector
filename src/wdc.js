@@ -72,7 +72,7 @@ window.addEventListener("load", function() {
               let dates = businessDays(max([new Date(start_date), now]),new Date(end_date))
               table.appendRows(
                 dates.map(date=>({
-                  ddate: toDateString(date),
+                  date: toDateString(date),
                   entry_type: "booking",
                   day_type: dayType(date),
                   task_id,
