@@ -1,7 +1,7 @@
 import axios from 'axios'
 import {max, differenceInSeconds} from 'date-fns'
 import {groupBy} from 'lodash-es'
-import {businessDays, isValidDate, nextBusinessDay, dateRange, dayType} from './dateHelpers.js'
+import {businessDays, isValidDate, nextBusinessDay, dateRange, dayType, toDateString} from './dateHelpers.js'
 import projectsSchema from './schemas/projects.js'
 import tasksSchema from './schemas/tasks.js'
 import usersSchema from './schemas/users.js'
@@ -23,7 +23,7 @@ const estimateProgress = ({progress_status, start_date, due_date, complete}) => 
 
 const entryDateAndDuration = ({date: date0, duration: duration0, start_time, end_time}) => {
   let
-    date = date0 || new Date(start_time),
+    date = date0 || toDateString(new Date(start_time)),
     duration = (duration0 || differenceInSeconds(new Date(end_time), new Date(start_time)))/3600
   return {
     date,
@@ -61,7 +61,7 @@ window.addEventListener("load", function() {
         for (let {id: user_id} of users) {
           table.appendRows(
             dateRange(new Date(queryStartDate),new Date(queryEndDate))
-            .map(date => ({date, user_id, entry_type: "user", day_type: dayType(date)}))
+            .map(date => ({date: toDateString(date), user_id, entry_type: "user", day_type: dayType(date)}))
           )
         }
         for (let task of planned_tasks) {
@@ -72,7 +72,7 @@ window.addEventListener("load", function() {
               let dates = businessDays(max([new Date(start_date), now]),new Date(end_date))
               table.appendRows(
                 dates.map(date=>({
-                  date,
+                  ddate: toDateString(date),
                   entry_type: "booking",
                   day_type: dayType(date),
                   task_id,
@@ -101,7 +101,7 @@ window.addEventListener("load", function() {
             if (usersCount==0) {
               table.appendRows(
                 dates.map(date=>({
-                  date,
+                  date: toDateString(date),
                   entry_type,
                   day_type: dayType(date),
                   task_id,
@@ -111,7 +111,7 @@ window.addEventListener("load", function() {
               for (let user_id of users) {
                 table.appendRows(
                   dates.map(date=>({
-                    date,
+                    date: toDateString(date),
                     entry_type,
                     day_type: dayType(date),
                     task_id,
@@ -137,7 +137,7 @@ window.addEventListener("load", function() {
               let dates = businessDays(max([new Date(start_date), now]),new Date(end_date))
               table.appendRows(
                 dates.map(date=>({
-                  date,
+                  date: toDateString(date),
                   entry_type: "booking",
                   day_type: dayType(date),
                   task_id,
