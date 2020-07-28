@@ -158,6 +158,7 @@ window.addEventListener("load", function() {
     } else if (id == "entries") {
       (async () => {
         const {data} = await paymo.get(`entries?where=time_interval in("${queryStartDate}","${queryEndDate}")`)
+        tableau.log(data)
         table.appendRows(data[id].map((date,...rest)=>({date:date||toDateString(rest.start_time),...rest})))
         doneCallback()
       })()
